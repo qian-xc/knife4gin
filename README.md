@@ -5,6 +5,8 @@
 golang的web框架接口文档工具，需要配合[gin-swagger](https://github.com/swaggo/gin-swagger)使用，
 由knife4j移植过来的
 
+### 配置
+
 ```go
 package router
 
@@ -18,7 +20,8 @@ func InitRouter() *gin.Engine {
 	r := gin.New()
 
 	docsDefaultOption := knife4gin.DefaultOption
-	//docsDefaultOption.DocJson = docs.SwaggerJson()获取swagger生成的json内容
+	//获取swagger生成的json内容
+	//docsDefaultOption.DocJson = docs.SwaggerJson()  
 	knife4gin.Register(r, &docsDefaultOption)
 
 	return r
@@ -26,3 +29,7 @@ func InitRouter() *gin.Engine {
 }
 
 ```
+
+### 访问
+
+浏览器打开 /doc/doc.html
