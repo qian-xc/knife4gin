@@ -19,13 +19,22 @@ type OptionSwagger struct {
 }
 
 type Option struct {
-	DocJsonPath  string
-	RelativePath string
-	Swagger      *OptionSwagger
+	DocJson         []byte //Swagger json
+	DocJsonPath     string //Swagger json路径(DocJson为空时才生效)
+	ApiRelativePath string //api 路径
+	Swagger         *OptionSwagger
 }
 
+var (
+	DefaultOption = Option{
+		DocJsonPath:     "./doc/swagger.json",
+		ApiRelativePath: "/doc",
+		Swagger:         nil,
+	}
+)
+
 func Register(r *gin.Engine, option *Option) {
-	r.GET(option.RelativePath+"/*any", Handler(option))
+	r.GET(option.ApiRelativePath+"/*any", Handler(option))
 }
 
 func Handler(option *Option) gin.HandlerFunc {
@@ -46,13 +55,19 @@ func Handler(option *Option) gin.HandlerFunc {
 		option.Swagger.SwaggerVersion = "2.0"
 	}
 
-	docJson, err := os.ReadFile(option.DocJsonPath)
-	if err != nil {
-		slog.Info("not found docJson in " + option.DocJsonPath)
+	docJson := option.DocJson
+
+	if docJson == nil {
+		var err error
+		docJson, err = os.ReadFile(option.DocJsonPath)
+		if err != nil {
+			slog.Info("not found docJson in " + option.DocJsonPath)
+		}
 	}
-	indexPath := option.RelativePath + "/index.html"
-	servicesPath := option.RelativePath + "/services.json"
-	docJsonPath := option.RelativePath + "/doc.json"
+
+	indexPath := option.ApiRelativePath + "/index.html"
+	servicesPath := option.ApiRelativePath + "/services.json"
+	docJsonPath := option.ApiRelativePath + "/doc.json"
 
 	return func(c *gin.Context) {
 		switch c.Request.RequestURI {
@@ -63,7 +78,7 @@ func Handler(option *Option) gin.HandlerFunc {
 		case docJsonPath:
 			writeDocJson(c, docJson)
 		default:
-			filePath := "front" + strings.TrimPrefix(c.Request.RequestURI, option.RelativePath)
+			filePath := "front" + strings.TrimPrefix(c.Request.RequestURI, option.ApiRelativePath)
 			c.FileFromFS(filePath, http.FS(front))
 		}
 	}
@@ -72,7 +87,9 @@ func Handler(option *Option) gin.HandlerFunc {
 
 func writeBytes(write io.Writer, bytes []byte) {
 	_, err := write.Write(bytes)
-	slog.Error("bytes write error ", "err", err)
+	if err != nil {
+		slog.Error("bytes write error ", "err", err)
+	}
 }
 
 func writeDocHtml(c *gin.Context) {
